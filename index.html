@@ -1,1 +1,178 @@
-
+<!DOCTYPE html>    
+<html lang="en">    
+<head>    
+    <meta charset="UTF-8">    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">    
+    <title>Quartz Gold Miner - Professional Edition</title>    
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>    
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>    
+    <style>    
+        :root { --gold: #f59e0b; --bg: #0f172a; --card: #1e293b; }    
+        body { margin: 0; background: var(--bg); color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; user-select: none; overflow-x: hidden; }    
+        .section { display: none; padding: 20px; padding-bottom: 100px; min-height: 100vh; box-sizing: border-box; }    
+        .active { display: block; animation: fadeIn 0.3s; }    
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }  
+        .score-box { font-size: 50px; font-weight: bold; margin: 15px 0; color: var(--gold); text-shadow: 0 0 10px rgba(245, 158, 11, 0.5); }    
+        .gold-trigger { width: 220px; cursor: pointer; transition: transform 0.1s; -webkit-tap-highlight-color: transparent; border-radius: 50%; box-shadow: 0 0 20px rgba(245, 158, 11, 0.2); }    
+        .gold-trigger:active { transform: scale(0.90); }    
+        .card { background: var(--card); border-radius: 15px; padding: 20px; margin-top: 20px; border: 1px solid #334155; }    
+        .btn { background: var(--gold); color: black; border: none; padding: 15px; border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%; font-size: 16px; margin-top: 10px; }    
+        .footer-nav { position: fixed; bottom: 0; width: 100%; display: flex; background: var(--card); padding: 15px 0; border-top: 1px solid #334155; z-index: 100; }    
+        .nav-item { flex: 1; font-size: 12px; color: #94a3b8; cursor: pointer; }    
+        .nav-item.active-nav { color: var(--gold); font-weight: bold; }    
+        /* Ad Styles */  
+        .ad-container { margin: 15px auto; width: 320px; height: 50px; background: #1e293b; border: 1px dashed #475569; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #64748b; }  
+    </style>    
+</head>    
+<body>    
+  
+    <audio id="click-sound"><source src="https://www.soundjay.com/buttons/sounds/button-16.mp3"></audio>    
+    
+    <div id="mine-sec" class="section active">    
+        <div style="padding-top:10px; font-size:12px; color:#64748b;">Miner ID: <span id="uid-txt">...</span></div>    
+          
+        <div class="ad-container">ADS PLACEHOLDER (Google AdSense)</div>  
+  
+        <div class="score-box">🪙 <span id="gold-count">0</span></div>    
+        <div style="color: #94a3b8; margin-bottom: 10px;">⚡ Energy: <span id="energy-count">1000</span>/1000</div>    
+          
+        <div style="height: 40vh; display: flex; align-items: center; justify-content: center;">    
+            <img src="https://img.freepik.com/premium-vector/gold-ore-gem-stone-precious-rock-isolated-white-background_633472-139.jpg" class="gold-trigger" id="mine-btn">    
+        </div>  
+  
+        <button class="btn" style="width: 80%; margin-top: 20px;" onclick="watchAdForEnergy()">Watch Ad for +500 Energy ⚡</button>  
+    </div>    
+    
+    <div id="rank-sec" class="section">    
+        <h2 style="color: var(--gold);">🏆 Top Miners</h2>    
+        <div id="leaderboard-list" class="card" style="text-align: left;">Loading...</div>    
+    </div>    
+    
+    <div id="wallet-sec" class="section">    
+        <h2>💰 Withdraw</h2>    
+        <div class="card">    
+            <p>Balance: <span id="w-bal" style="color: var(--gold);">0</span> Coins</p>    
+            <input type="text" id="wallet-addr" placeholder="TON or USDT Address" style="width:100%; padding:12px; margin-bottom:10px; border-radius:8px; border:1px solid #475569; background:#0f172a; color:white;">    
+            <button class="btn" onclick="requestWithdraw()">Request Withdrawal</button>    
+        </div>    
+        <p style="font-size: 11px; color: #64748b; margin-top: 15px;">Withdrawals are processed within 24 hours.</p>  
+    </div>    
+    
+    <div id="ref-sec" class="section">    
+        <h2>👥 Invite & Earn</h2>    
+        <div class="card">    
+            <p>Invite friends and get <b>100 Coins</b> bonus!</p>    
+            <div id="ref-link" style="font-size: 10px; background: #0f172a; padding: 10px; border-radius: 5px; margin: 10px 0; word-break: break-all; color: #3b82f6;">...</div>    
+            <button class="btn" onclick="shareRef()">Share Link</button>    
+        </div>    
+    </div>    
+    
+    <div class="footer-nav">    
+        <div class="nav-item active-nav" onclick="showSec('mine-sec', this)">⛏️<br>Mine</div>    
+        <div class="nav-item" onclick="showSec('rank-sec', this); loadRank()">📊<br>Rank</div>    
+        <div class="nav-item" onclick="showSec('wallet-sec', this); updateW()">💰<br>Wallet</div>    
+        <div class="nav-item" onclick="showSec('ref-sec', this)">👥<br>Invite</div>    
+    </div>    
+    
+    <script>    
+        // Firebase Configuration (የአንተ መረጃዎች)  
+        const firebaseConfig = {    
+            apiKey: "AIzaSyDttFlyuy5b2YJPWO5uXMKHsc1FeUUjoeI",    
+            authDomain: "azizminer1-star-game.firebaseapp.com",    
+            projectId: "azizminer1-star-game",    
+            storageBucket: "azizminer1-star-game.firebasestorage.app",    
+            messagingSenderId: "161135020264",    
+            appId: "1:161135020264:web:38b4a9a88184890641615d"    
+        };    
+        firebase.initializeApp(firebaseConfig);    
+        const db = firebase.firestore();    
+    
+        let uid = localStorage.getItem('miner_uid') || "AZ_" + Math.floor(Math.random() * 89999 + 10000);    
+        localStorage.setItem('miner_uid', uid);    
+        let gold = parseInt(localStorage.getItem('gold_bal')) || 0;    
+        let energy = parseInt(localStorage.getItem('energy_bal')) || 1000;    
+    
+        document.getElementById('uid-txt').innerText = uid;    
+        document.getElementById('gold-count').innerText = gold;    
+        document.getElementById('energy-count').innerText = energy;  
+        document.getElementById('ref-link').innerText = "https://azizminer1-star.github.io/qourtz-gold-miner/?start=" + uid;    
+    
+        // ኢነርጂ በየሰከንዱ እንዲሞላ (Energy Regen)  
+        setInterval(() => {  
+            if (energy < 1000) {  
+                energy += 1;  
+                updateUI();  
+                localStorage.setItem('energy_bal', energy);  
+            }  
+        }, 3000); // በየ 3 ሰከንዱ 1 ኢነርጂ ይሞላል  
+  
+        document.getElementById('mine-btn').addEventListener('click', (e) => {    
+            if (energy > 0) {    
+                gold++; energy--;   
+                updateUI();    
+                document.getElementById('click-sound').currentTime=0;    
+                document.getElementById('click-sound').play();    
+                save();    
+            } else {  
+                alert("Out of Energy! Wait or watch an ad.");  
+            }  
+        });    
+    
+        function updateUI() {    
+            document.getElementById('gold-count').innerText = gold;    
+            document.getElementById('energy-count').innerText = energy;    
+        }    
+    
+        function save() {    
+            localStorage.setItem('gold_bal', gold);    
+            localStorage.setItem('energy_bal', energy);  
+            db.collection("users").doc(uid).set({ score: gold, lastActive: new Date() }, { merge: true });    
+        }    
+  
+        function watchAdForEnergy() {  
+            // እዚህ ጋር የማስታወቂያ ኮድህን ትጨምራለህ  
+            alert("Showing Ad...");  
+            setTimeout(() => {  
+                energy = Math.min(energy + 500, 1000);  
+                updateUI();  
+                alert("Bonus Received: +500 Energy!");  
+            }, 2000);  
+        }  
+    
+        function showSec(id, el) {    
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));    
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active-nav'));  
+            document.getElementById(id).classList.add('active');    
+            el.classList.add('active-nav');  
+        }    
+  
+        function updateW() { document.getElementById('w-bal').innerText = gold.toLocaleString(); }    
+  
+        function loadRank() {    
+            const list = document.getElementById('leaderboard-list');    
+            list.innerHTML = "Loading...";    
+            db.collection("users").orderBy("score", "desc").limit(10).get().then(snap => {    
+                list.innerHTML = "";    
+                snap.forEach((doc, i) => {    
+                    list.innerHTML += `<div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #334155;">    
+                        <span>${i+1}. ${doc.id}</span> <b>🪙 ${doc.data().score}</b>    
+                    </div>`;    
+                });    
+            });    
+        }  
+  
+        function requestWithdraw() {  
+            const addr = document.getElementById('wallet-addr').value;  
+            if(gold < 50000) { alert("Minimum withdrawal is 50,000 coins!"); return; }  
+            if(addr.length < 10) { alert("Please enter a valid wallet address!"); return; }  
+            db.collection("withdraws").add({ uid, amount: gold, address: addr, status: "pending", date: new Date() })  
+            .then(() => { alert("Withdrawal request sent!"); gold = 0; save(); updateUI(); });  
+        }  
+  
+        function shareRef() {  
+            const link = document.getElementById('ref-link').innerText;  
+            window.open(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=Join my mining team and earn gold!`);  
+        }  
+    </script>    
+</body>    
+</html>
